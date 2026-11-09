@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Pelanggan - Bengkel Limcun</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-links">
+      <a href="customerdashboard.html" class="nav-link active">Dashboard Reservasi</a>
+      <a href="work-order.html" class="nav-link">Work Order Digital</a>
+      <span class="role-badge">Pelanggan</span>
+      <a href="login.html" class="nav-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="main-container">
+    <h2>Dasbor Reservasi Armada (CU-01 & CU-02)</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Kelola reservasi perbaikan armada dump truck kamu secara interaktif.</p>
+
+    <!-- Widget Pengingat Servis 3 Bulanan (BR-08 & FR-07) -->
+    <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+      <div>
+        <h4 style="color: #1e40af; font-size: 0.95rem; margin-bottom: 0.25rem;">🔔 Pengingat Perawatan Berkala (3 Bulanan / +90 Hari)</h4>
+        <p style="font-size: 0.85rem; color: #1e3a8a;" id="serviceReminderText">Armada BK 8123 YL terakhir servis pada 15 Januari 2026. Jadwal servis berikutnya estimasi <strong>15 April 2026</strong>.</p>
+      </div>
+      <span class="status" style="background-color: #dbeafe; color: #1d4ed8;">Aktif</span>
+    </div>
+
+    <div id="alertBox" style="display: none; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-weight: 500;"></div>
+
+    <div class="grid-2">
+      <!-- Form Reservasi & Reschedule H-1 -->
+      <div class="card">
+        <h3>Formulir Pemesanan Reservasi</h3>
+        <form id="reservationForm" onsubmit="submitReservation(event)">
+          <div class="form-group">
+            <label>Nomor Polisi Armada</label>
+            <input type="text" id="inputPlat" class="form-control" placeholder="Contoh: BK 8123 YL" required>
+          </div>
+          <div class="form-group">
+            <label>Tipe / Model Dump Truck</label>
+            <input type="text" id="inputTipe" class="form-control" placeholder="Contoh: Hino Ranger / Isuzu" required>
+          </div>
+          <div class="form-group">
+            <label>Jenis Paket Servis</label>
+            <select id="selectServis" class="form-control" onchange="updatePriceEstimate()">
+              <option value="Servis Ringan (30 Menit)" data-price="150000">Servis Ringan (30 Menit) - Rp 150.000</option>
+              <option value="Servis Berkala (60 - 90 Menit)" data-price="350000">Servis Berkala (60 - 90 Menit) - Rp 350.000</option>
+              <option value="Servis Besar (180 Menit)" data-price="750000">Servis Besar (180 Menit) - Rp 750.000</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Pilih Slot Waktu & Mekanik</label>
+            <select id="selectSlot" class="form-control">
+              <option value="slot-0900-b">09:00 - 10:00 WIB (Mekanik B - Pit 2)</option>
+              <option value="slot-0900-c">09:00 - 10:00 WIB (Mekanik C - Pit 3)</option>
+              <option value="slot-1000-c">10:00 - 11:30 WIB (Mekanik C - Pit 3)</option>
+              <option value="slot-1130-a">11:30 - 13:00 WIB (Mekanik A - Pit 1)</option>
+              <option value="slot-1130-b">11:30 - 13:00 WIB (Mekanik B - Pit 2)</option>
+              <option value="slot-1130-c">11:30 - 13:00 WIB (Mekanik C - Pit 3)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Pilih Sparepart Kritis yang Dikunci</label>
+            <select id="selectSparepart" class="form-control">
+              <option value="Seal Hidrolik PTO">Seal Hidrolik PTO</option>
+              <option value="Filter Solar Dump Truck">Filter Solar Dump Truck</option>
+              <option value="Kampas Rem Angin Set">Kampas Rem Angin Set</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Kirim Reservasi & Kunci Stok</button>
+        </form>
+
+        <!-- Dynamic Upload DP Box dengan Validasi Max 5 MB & Format Gambar (BR-09) -->
+        <div id="dpUploadSection" style="display: none; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed var(--border);">
+          <h4>Unggah Bukti Transfer DP 30% (Max 5 MB | JPG/PNG)</h4>
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+            Total Tagihan DP: <strong id="dpAmountText" style="color: var(--primary);">Rp 45.000</strong>
+          </p>
+          <div class="form-group">
+            <input type="file" id="fileDp" class="form-control" accept="image/png, image/jpeg">
+          </div>
+          <button type="button" class="btn btn-success" style="width: 100%;" onclick="uploadDp()">Konfirmasi Unggah DP</button>
+        </div>
+      </div>
+
+      <!-- Matriks Timeline & Riwayat / Reschedule H-1 (BR-05) -->
+      <div class="card">
+        <h3>Matriks Timeline Ketersediaan Slot</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Status alokasi 3 Mekanik & 4 Pit (09.00 - 17.00 WIB)</p>
+
+        <div class="timeline-grid">
+          <div class="cell header">Jam / Pit</div>
+          <div class="cell header">Mekanik A</div>
+          <div class="cell header">Mekanik B</div>
+          <div class="cell header">Mekanik C</div>
+
+          <div class="cell" style="font-weight:600;">09:00 - 10:00</div>
+          <div class="cell slot-busy">TERISI (Pit 1)</div>
+          <div class="cell slot-free" id="slot-0900-b" data-status="free">AVAILABLE</div>
+          <div class="cell slot-free" id="slot-0900-c" data-status="free">AVAILABLE</div>
+
+          <div class="cell" style="font-weight:600;">10:00 - 11:30</div>
+          <div class="cell slot-busy">TERISI (Pit 1)</div>
+          <div class="cell slot-busy">TERISI (Pit 2)</div>
+          <div class="cell slot-free" id="slot-1000-c" data-status="free">AVAILABLE</div>
+
+          <div class="cell" style="font-weight:600;">11:30 - 13:00</div>
+          <div class="cell slot-free" id="slot-1130-a" data-status="free">AVAILABLE</div>
+          <div class="cell slot-free" id="slot-1130-b" data-status="free">AVAILABLE</div>
+          <div class="cell slot-free" id="slot-1130-c" data-status="free">AVAILABLE</div>
+        </div>
+
+        <h4 style="margin-top: 2rem; margin-bottom: 0.5rem;">Riwayat Reservasi & Reschedule Mandiri (H-1)</h4>
+        <div id="activeReservationContainer">
+          <p style="font-size: 0.85rem; color: var(--text-muted);">Belum ada reservasi aktif.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Bengkel Limcun - Sistem Servis Bengkel Dump Truck</p>
+  </footer>
+
+  <script>
+    function showAlert(message, type) {
+      const alertBox = document.getElementById('alertBox');
+      alertBox.style.display = 'block';
+      if (type === 'error') {
+        alertBox.style.backgroundColor = 'var(--danger-bg)';
+        alertBox.style.color = 'var(--danger)';
+        alertBox.style.border = '1px solid var(--danger)';
+      } else {
+        alertBox.style.backgroundColor = 'var(--success-bg)';
+        alertBox.style.color = 'var(--success)';
+        alertBox.style.border = '1px solid var(--success)';
+      }
+      alertBox.innerText = message;
+    }
+
+    function updatePriceEstimate() {
+      const select = document.getElementById('selectServis');
+      const selectedOpt = select.options[select.selectedIndex];
+      const price = parseInt(selectedOpt.getAttribute('data-price')) || 150000;
+      const dp = price * 0.3;
+      document.getElementById('dpAmountText').innerText = 'Rp ' + dp.toLocaleString('id-ID');
+    }
+
+    function submitReservation(e) {
+      e.preventDefault();
+      const platInput = document.getElementById('inputPlat').value.trim();
+      const tipe = document.getElementById('inputTipe').value.trim();
+      const selectServis = document.getElementById('selectServis');
+      const jenisServis = selectServis.value;
+      const basePrice = parseInt(selectServis.options[selectServis.selectedIndex].getAttribute('data-price')) || 150000;
+      const slotId = document.getElementById('selectSlot').value;
+      const sparepart = document.getElementById('selectSparepart').value;
+      const targetSlot = document.getElementById(slotId);
+
+      // Validasi Format Nomor Polisi (Contoh: BK 8123 YL)
+      const platRegex = /^[A-Z]{1,2}\s?\d{1,4}\s?[A-Z]{1,3}$/i;
+      if (!platRegex.test(platInput)) {
+        showAlert('⚠️ Format Nomor Polisi Armada tidak valid! Gunakan format yang benar, contoh: BK 8123 YL.', 'error');
+        return;
+      }
+
+      if (targetSlot.getAttribute('data-status') === 'busy') {
+        showAlert(`⚠️ Maaf, slot waktu dan mekanik tersebut sudah terisi! Silakan pilih jam atau mekanik lain.`, 'error');
+        return;
+      }
+
+      // Pengurangan stok inventaris secara atomik via localStorage
+      let inventory = JSON.parse(localStorage.getItem('limcun_inventory')) || {
+        'Seal Hidrolik PTO': 12,
+        'Filter Solar Dump Truck': 25,
+        'Kampas Rem Angin Set': 2
+      };
+
+      if (inventory[sparepart] && inventory[sparepart] > 0) {
+        inventory[sparepart] -= 1;
+        localStorage.setItem('limcun_inventory', JSON.stringify(inventory));
+      } else {
+        showAlert(`⚠️ Maaf, stok untuk sparepart "${sparepart}" sedang habis!`, 'error');
+        return;
+      }
+
+      targetSlot.setAttribute('data-status', 'busy');
+      targetSlot.className = 'cell slot-busy';
+      targetSlot.innerText = 'TERISI (' + platInput.toUpperCase() + ')';
+
+      const reservationData = {
+        plat: platInput.toUpperCase(),
+        tipe: tipe,
+        jenisServis: jenisServis,
+        basePrice: basePrice,
+        slotName: targetSlot.previousElementSibling ? targetSlot.previousElementSibling.innerText : 'Jadwal Dipilih',
+        sparepart: sparepart,
+        status: 'Pending DP'
+      };
+      localStorage.setItem('limcun_active_reservation', JSON.stringify(reservationData));
+
+      showAlert(`✓ Reservasi berhasil dibuat! Stok sparepart "${sparepart}" telah dikunci. Silakan unggah bukti DP (Maks 5 MB).`, 'success');
+      renderActiveReservation(reservationData);
+      document.getElementById('dpUploadSection').style.display = 'block';
+    }
+
+    function renderActiveReservation(data) {
+      const container = document.getElementById('activeReservationContainer');
+      container.innerHTML = `
+        <div style="background-color: #f1f5f9; padding: 1rem; border-radius: 8px; border-left: 4px solid var(--warning);">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong>${data.plat} (${data.tipe})</strong>
+            <span class="status ${data.status === 'Confirmed' ? 'status-available' : 'status-pending'}" id="statusBadge">${data.status}</span>
+          </div>
+          <p style="font-size:0.85rem; margin-top:0.5rem; color: var(--text-secondary);">
+            Layanan: ${data.jenisServis} (Rp ${data.basePrice.toLocaleString('id-ID')})<br>
+            Slot: ${data.slotName} | Sparepart: <strong>${data.sparepart}</strong>
+          </p>
+          <div style="margin-top: 0.75rem; display: flex; gap: 0.5rem;">
+            <input type="date" id="newRescheduleDate" class="form-control" style="font-size:0.8rem; padding:0.35rem;">
+            <button class="btn btn-primary" style="font-size:0.8rem; padding:0.35rem 0.75rem;" onclick="requestReschedule()">Reschedule H-1</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function uploadDp() {
+      const fileInput = document.getElementById('fileDp');
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const fileSizeMb = file.size / (1024 * 1024);
+        const fileType = file.type;
+
+        if (fileSizeMb > 5) {
+          showAlert('⚠️ Gagal: Ukuran file melebihi batas maksimal 5 MB!', 'error');
+          return;
+        }
+        if (fileType !== 'image/jpeg' && fileType !== 'image/png') {
+          showAlert('⚠️ Gagal: Format file harus .jpg atau .png!', 'error');
+          return;
+        }
+      }
+
+      let res = JSON.parse(localStorage.getItem('limcun_active_reservation'));
+      if(res) {
+        res.status = 'Confirmed';
+        localStorage.setItem('limcun_active_reservation', JSON.stringify(res));
+      }
+
+      const badge = document.getElementById('statusBadge');
+      if (badge) {
+        badge.className = 'status status-available';
+        badge.innerText = 'Confirmed (DP Verified)';
+      }
+
+      showAlert('✓ Bukti transfer DP berhasil divalidasi sistem!', 'success');
+      document.getElementById('dpUploadSection').style.display = 'none';
+    }
+
+    function requestReschedule() {
+      const dateVal = document.getElementById('newRescheduleDate').value;
+      if (!dateVal) {
+        alert('Silakan pilih tanggal baru untuk pengajuan reschedule!');
+        return;
+      }
+      showAlert(`✓ Pengajuan Reschedule ke tanggal ${dateVal} berhasil dicatat (Memenuhi aturan batas H-1). Menunggu konfirmasi admin.`, 'success');
+    }
+  </script>
+</body>
+</html>

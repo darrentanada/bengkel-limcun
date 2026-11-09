@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Owner - Bengkel Limcun</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-links">
+      <a href="owner-dashboard.html" class="nav-link active">Dashboard Owner</a>
+      <a href="login.html" class="nav-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="main-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <div>
+        <h2>Dashboard Eksekutif Owner (Analisis & Audit Bisnis)</h2>
+        <p style="color: var(--text-muted);">Monitoring performa keuangan, utilisasi pit mekanik, dan audit operasional bengkel.</p>
+      </div>
+      <div>
+        <label style="font-size: 0.85rem; font-weight: 600; margin-right: 0.5rem;">Filter Periode:</label>
+        <select id="filterPeriode" class="form-control" style="display: inline-block; width: auto;" onchange="updateOwnerData()">
+          <option value="hari">Hari Ini</option>
+          <option value="minggu">Minggu Ini</option>
+          <option value="bulan" selected>Bulan Ini (Aktif)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid-3" style="margin-bottom: 2rem;">
+      <div class="card" style="border-left: 5px solid var(--primary);">
+        <p style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">TOTAL PENDAPATAN BERSIH</p>
+        <h3 id="kpiPendapatan" style="margin-top: 0.5rem; color: var(--primary);">Rp 48.500.000</h3>
+        <p style="font-size: 0.75rem; color: var(--success); margin-top: 0.25rem;">▲ +12% dibanding periode lalu</p>
+      </div>
+      <div class="card" style="border-left: 5px solid var(--success);">
+        <p style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">UTILITAS PIT & MEKANIK</p>
+        <h3 id="kpiUtilitas" style="margin-top: 0.5rem;">84.5%</h3>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Optimal (3 Mekanik & 4 Pit Aktif)</p>
+      </div>
+      <div class="card" style="border-left: 5px solid var(--warning);">
+        <p style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">WORK ORDER PENDING / AUDIT</p>
+        <h3 id="kpiPending" style="margin-top: 0.5rem;">3 Unit</h3>
+        <p style="font-size: 0.75rem; color: var(--warning); margin-top: 0.25rem;">Membutuhkan tinjauan ulang harga</p>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Statistik Layanan & Sparepart Kritis Terlaris</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Distribusi volume perbaikan dump truck berdasarkan jenis servis.</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:600; margin-bottom:0.25rem;">
+              <span>Servis Berkala (60-90 Menit)</span>
+              <span>55%</span>
+            </div>
+            <div style="background:#e2e8f0; height:10px; border-radius:5px; overflow:hidden;">
+              <div style="background:var(--primary); width:55%; height:100%;"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:600; margin-bottom:0.25rem;">
+              <span>Servis Besar & Overhaul (180 Menit)</span>
+              <span>30%</span>
+            </div>
+            <div style="background:#e2e8f0; height:10px; border-radius:5px; overflow:hidden;">
+              <div style="background:var(--success); width:30%; height:100%;"></div>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:600; margin-bottom:0.25rem;">
+              <span>Servis Ringan / Darurat (30 Menit)</span>
+              <span>15%</span>
+            </div>
+            <div style="background:#e2e8f0; height:10px; border-radius:5px; overflow:hidden;">
+              <div style="background:var(--warning); width:15%; height:100%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Log Audit Persetujuan Work Order (CU-05)</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Rekaman histori otorisasi perbaikan tambahan oleh pelanggan.</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>No. WO & Plat</th>
+              <th>Layanan / Tambahan</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>WO-202610-004</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">BK 8123 YL</span></td>
+              <td>Hose Hidrolik (Rp 350.000)</td>
+              <td><span class="status status-available">Approved</span></td>
+            </tr>
+            <tr>
+              <td><strong>WO-202610-003</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">BK 4412 AB</span></td>
+              <td>Ganti Kampas Rem (Rp 500.000)</td>
+              <td><span class="status status-occupied">Rejected</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top: 1.5rem; text-align: right;">
+          <button class="btn btn-primary" onclick="exportAuditReport()">Unduh Laporan Audit (PDF/CSV)</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Bengkel Limcun - Sistem Servis Bengkel Dump Truck</p>
+  </footer>
+
+  <script>
+    function updateOwnerData() {
+      const periode = document.getElementById('filterPeriode').value;
+      const kpiPendapatan = document.getElementById('kpiPendapatan');
+      const kpiUtilitas = document.getElementById('kpiUtilitas');
+      const kpiPending = document.getElementById('kpiPending');
+
+      if (periode === 'hari') {
+        kpiPendapatan.innerText = 'Rp 3.200.000';
+        kpiUtilitas.innerText = '75.0%';
+        kpiPending.innerText = '1 Unit';
+      } else if (periode === 'minggu') {
+        kpiPendapatan.innerText = 'Rp 14.800.000';
+        kpiUtilitas.innerText = '80.0%';
+        kpiPending.innerText = '2 Unit';
+      } else {
+        kpiPendapatan.innerText = 'Rp 48.500.000';
+        kpiUtilitas.innerText = '84.5%';
+        kpiPending.innerText = '3 Unit';
+      }
+      alert(`Data eksekutif berhasil diperbarui untuk filter: ${periode.toUpperCase()}`);
+    }
+
+    function exportAuditReport() {
+      alert('✓ Laporan audit finansial & Work Order berhasil diunduh.');
+    }
+  </script>
+</body>
+</html>

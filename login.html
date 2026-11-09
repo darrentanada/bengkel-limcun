@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Bengkel Limcun</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body style="display: flex; flex-direction: column; min-height: 100vh; justify-content: center; align-items: center; background-color: #f8fafc;">
+
+  <div class="card" style="width: 100%; max-width: 400px; padding: 2rem;">
+    <div style="text-align: center; margin-bottom: 1.5rem;">
+      <span style="font-size: 3rem;">🔧</span>
+      <h2>Bengkel Limcun</h2>
+      <p style="color: var(--text-muted); font-size: 0.85rem;">Sistem Layanan Servis & Manajemen Dump Truck</p>
+    </div>
+
+    <div id="loginAlert" style="display: none; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.85rem; font-weight: 500;"></div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>Pilih Hak Akses (Role)</label>
+        <select id="loginRole" class="form-control">
+          <option value="customer">Pelanggan (Customer)</option>
+          <option value="admin">Admin / Kasir</option>
+          <option value="owner">Owner / Eksekutif</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Alamat Email</label>
+        <input type="text" id="loginUser" class="form-control" placeholder="namaanda@gmail.com" required>
+      </div>
+
+      <div class="form-group">
+        <label>Kata Sandi (Password)</label>
+        <input type="password" id="loginPass" class="form-control" placeholder="Minimal 8 karakter" required>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">Masuk ke Sistem</button>
+    </form>
+  </div>
+
+  <footer style="margin-top: 2rem; text-align: center;">
+    <p style="font-size: 0.8rem; color: var(--text-muted);">&copy; 2026 Bengkel Limcun - All Rights Reserved</p>
+  </footer>
+
+  <script>
+    function handleLogin(e) {
+      e.preventDefault();
+      const role = document.getElementById('loginRole').value;
+      const email = document.getElementById('loginUser').value.trim();
+      const pass = document.getElementById('loginPass').value;
+      const alertBox = document.getElementById('loginAlert');
+
+      if (!email.includes('@gmail.com')) {
+        alertBox.style.display = 'block';
+        alertBox.style.backgroundColor = 'var(--danger-bg)';
+        alertBox.style.color = 'var(--danger)';
+        alertBox.style.border = '1px solid var(--danger)';
+        alertBox.innerText = '⚠️ Format email tidak valid! Harap masukkan email yang menggunakan domain "@gmail.com".';
+        return;
+      }
+
+      if (pass.length < 8) {
+        alertBox.style.display = 'block';
+        alertBox.style.backgroundColor = 'var(--danger-bg)';
+        alertBox.style.color = 'var(--danger)';
+        alertBox.style.border = '1px solid var(--danger)';
+        alertBox.innerText = '⚠️ Kata sandi (password) minimal harus 8 karakter!';
+        return;
+      }
+
+      if (role === 'customer') {
+        window.location.href = 'customerdashboard.html';
+      } else if (role === 'admin') {
+        window.location.href = 'admin-dashboard.html';
+      } else if (role === 'owner') {
+        window.location.href = 'owner-dashboard.html';
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Work Order - Bengkel Limcun</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="index.html" class="brand"><span class="brand-icon">🔧</span> Bengkel Limcun</a>
+    <div class="nav-links">
+      <a href="customerdashboard.html" class="nav-link">Dashboard Reservasi</a>
+      <a href="work-order.html" class="nav-link active">Work Order Digital</a>
+      <span class="role-badge">Pelanggan</span>
+      <a href="login.html" class="nav-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="main-container">
+    <h2>Lembar Otorisasi Perbaikan Digital (CU-05 & AD-04)</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Persetujuan transparan perbaikan tambahan berbasis bukti visual kerusakan dari mekanik.</p>
+
+    <div id="woAlert" style="display: none; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 500;"></div>
+
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <div>
+          <h3 id="woCodeTitle">Kode Work Order: -</h3>
+          <p id="woArmadaInfo" style="font-size: 0.9rem; color: var(--text-muted);">Armada: Belum ada data pemesanan aktif</p>
+        </div>
+        <span class="status status-pending" id="woStatusBadge">Menunggu Reservasi</span>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <h4>Bukti Visual Kerusakan Fisik (Area Pit)</h4>
+          <div style="background-color: #e2e8f0; height: 180px; border-radius: var(--radius); display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 0.5rem; color: #64748b; border: 2px dashed #cbd5e1;">
+            <span style="font-size: 2rem;">📸</span>
+            <p style="font-size: 0.8rem; margin-top: 0.25rem; text-align: center; padding: 0 1rem;">
+              <strong>Foto Kerusakan Komponen Tambahan</strong>
+            </p>
+          </div>
+          <!-- Input upload tambahan dengan validasi Max 5 MB (BR-09) -->
+          <div class="form-group" style="margin-top: 1rem;">
+            <label style="font-size:0.8rem;">Unggah Berkas Pendukung (Max 5 MB | JPG/PNG)</label>
+            <input type="file" id="woFile" class="form-control" accept="image/png, image/jpeg" style="font-size:0.8rem;">
+          </div>
+        </div>
+
+        <div>
+          <h4>Rincian Biaya Perbaikan & Layanan</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Deskripsi Pekerjaan / Part</th>
+                <th>Biaya</th>
+              </tr>
+            </thead>
+            <tbody id="costTableBody">
+              <!-- Default Kosong Total -->
+              <tr>
+                <td colspan="2" style="text-align: center; color: var(--text-muted); padding: 2rem 1rem;">
+                  Belum ada pesanan aktif. Silakan buat reservasi terlebih dahulu di <strong>Dashboard Reservasi</strong> agar rincian harga muncul secara otomatis di sini.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Tombol Aksi Persetujuan (Awalnya Disembunyikan) -->
+          <div id="actionButtonGroup" style="margin-top: 1.5rem; display: none; gap: 1rem;">
+            <button class="btn btn-success" style="flex: 1;" onclick="processApproval(true)">Setujui (Approve)</button>
+            <button class="btn btn-danger" style="flex: 1;" onclick="processApproval(false)">Tolak (Reject)</button>
+          </div>
+
+          <div id="approvalResultLog" style="display: none; margin-top: 1.5rem; padding: 1rem; border-radius: 8px;"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Bengkel Limcun - Sistem Servis Bengkel Dump Truck</p>
+  </footer>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedRes = JSON.parse(localStorage.getItem('limcun_active_reservation'));
+      const armadaInfo = document.getElementById('woArmadaInfo');
+      const tableBody = document.getElementById('costTableBody');
+      const actionGroup = document.getElementById('actionButtonGroup');
+      const woCodeTitle = document.getElementById('woCodeTitle');
+      const woStatusBadge = document.getElementById('woStatusBadge');
+
+      // Pastikan hanya merender jika data reservasi benar-benar ada dan statusnya belum diselesaikan
+      if (savedRes && savedRes.plat) {
+        woCodeTitle.innerText = "Kode Work Order: WO-202610-" + Math.floor(100 + Math.random() * 900);
+        armadaInfo.innerText = `Armada: ${savedRes.plat} (${savedRes.tipe}) | Layanan: ${savedRes.jenisServis}`;
+        woStatusBadge.className = 'status status-pending';
+        woStatusBadge.innerText = 'Menunggu Persetujuan';
+
+        const basePrice = savedRes.basePrice; // Harga dinamis dari pilihan servis customer
+        const addPartPrice = 350000;          // Biaya komponen tambahan
+        const totalCost = basePrice + addPartPrice;
+
+        // Render tabel rincian harga sesuai input customer
+        tableBody.innerHTML = `
+          <tr>
+            <td>Biaya Paket Utama (${savedRes.jenisServis})</td>
+            <td>Rp ${basePrice.toLocaleString('id-ID')}</td>
+          </tr>
+          <tr>
+            <td>Penggantian Suku Cadang Terkunci (${savedRes.sparepart})</td>
+            <td>Rp ${addPartPrice.toLocaleString('id-ID')}</td>
+          </tr>
+          <tr style="font-weight: bold; background-color: #f8fafc;">
+            <td>Total Estimasi Biaya Keseluruhan</td>
+            <td style="color: var(--primary);">Rp ${totalCost.toLocaleString('id-ID')}</td>
+          </tr>
+        `;
+
+        // Tampilkan tombol aksi
+        actionGroup.style.display = 'flex';
+      } else {
+        // Jika tidak ada data, kosongkan secara total
+        resetWorkOrder();
+      }
+    });
+
+    function resetWorkOrder() {
+      document.getElementById('woCodeTitle').innerText = "Kode Work Order: -";
+      document.getElementById('woArmadaInfo').innerText = "Armada: Belum ada data pemesanan aktif";
+      document.getElementById('woStatusBadge').className = 'status status-pending';
+      document.getElementById('woStatusBadge').innerText = 'Menunggu Reservasi';
+      document.getElementById('actionButtonGroup').style.display = 'none';
+      document.getElementById('costTableBody').innerHTML = `
+        <tr>
+          <td colspan="2" style="text-align: center; color: var(--text-muted); padding: 2rem 1rem;">
+            Belum ada pesanan aktif. Silakan buat reservasi terlebih dahulu di <strong>Dashboard Reservasi</strong> agar rincian harga muncul secara otomatis di sini.
+          </td>
+        </tr>
+      `;
+    }
+
+    function processApproval(isApproved) {
+      const fileInput = document.getElementById('woFile');
+      const woAlert = document.getElementById('woAlert');
+
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        if ((file.size / (1024 * 1024)) > 5) {
+          woAlert.style.display = 'block';
+          woAlert.style.backgroundColor = 'var(--danger-bg)';
+          woAlert.style.color = 'var(--danger)';
+          woAlert.innerText = '⚠️ Berkas gagal diunggah: Ukuran melebihi batas maksimal 5 MB!';
+          return;
+        }
+      }
+
+      woAlert.style.display = 'none';
+      const badge = document.getElementById('woStatusBadge');
+      const log = document.getElementById('approvalResultLog');
+      const buttonGroup = document.getElementById('actionButtonGroup');
+
+      buttonGroup.style.display = 'none';
+      log.style.display = 'block';
+      const now = new Date().toLocaleTimeString('id-ID');
+
+      const savedRes = JSON.parse(localStorage.getItem('limcun_active_reservation'));
+      const basePrice = savedRes ? savedRes.basePrice : 150000;
+      const totalCost = basePrice + 350000;
+
+      if (isApproved) {
+        badge.className = 'status status-available';
+        badge.innerText = 'APPROVED (Disetujui)';
+        log.style.backgroundColor = 'var(--success-bg)';
+        log.style.border = '1px solid var(--success)';
+        log.innerHTML = `
+          <strong style="color: var(--success);">✓ Work Order Disetujui pada ${now} WIB</strong>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
+            Total tagihan akhir sebesar <strong>Rp ${totalCost.toLocaleString('id-ID')}</strong> disetujui.
+          </p>
+        `;
+      } else {
+        badge.className = 'status status-occupied';
+        badge.innerText = 'REJECTED (Ditolak)';
+        log.style.backgroundColor = 'var(--danger-bg)';
+        log.style.border = '1px solid var(--danger)';
+        log.innerHTML = `
+          <strong style="color: var(--danger);">✕ Work Order Ditolak pada ${now} WIB</strong>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">
+            Tagihan hanya mencakup biaya paket dasar sebesar <strong>Rp ${basePrice.toLocaleString('id-ID')}</strong>.
+          </p>
+        `;
+      }
+
+      // Hapus data dari localStorage secara permanen setelah tombol aksi ditekan
+      localStorage.removeItem('limcun_active_reservation');
+    }
+  </script>
+</body>
+</html>

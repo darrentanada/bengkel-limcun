@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Admin & Kasir - Bengkel Limcun</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="index.html" class="brand"><span class="brand-icon">🔧</span> Bengkel Limcun</a>
+    <div class="nav-links">
+      <a href="admin-dashboard.html" class="nav-link active">Dashboard Admin</a>
+      <a href="login.html" class="nav-link">Logout</a>
+    </div>
+  </nav>
+
+  <main class="main-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+      <div>
+        <h2>Dashboard Manajemen Admin & Kasir (AD-01 s/d AD-04)</h2>
+        <p style="color: var(--text-muted);">Kelola antrean pit mekanik, verifikasi reservasi, dan validasi stok sparepart kritis.</p>
+      </div>
+      <div>
+        <span class="role-badge" style="background: var(--primary); color: white; padding: 0.5rem 1rem; border-radius: 6px;">Kasir / Admin Aktif</span>
+      </div>
+    </div>
+
+    <div id="adminAlert" style="display: none; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-weight: 500;"></div>
+
+    <div class="grid-2">
+      <!-- Tabel Verifikasi Reservasi & Aksi Interaktif Admin -->
+      <div class="card">
+        <h3>Daftar Reservasi & Validasi Kasir</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Kelola status konfirmasi dan penanganan keterlambatan armada.</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Armada & Layanan</th>
+              <th>Slot / Mekanik</th>
+              <th>Status & Aksi Kasir</th>
+            </tr>
+          </thead>
+          <tbody id="reservationTableBody">
+            <!-- Sengaja dikosongkan agar tidak ada data bawaan. Data akan muncul otomatis saat customer melakukan reservasi -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Kontrol Stok Sparepart Kritis (Sinkron dengan Customer) -->
+      <div class="card">
+        <h3>Kontrol Stok Sparepart Kritis (Inventory Control)</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">Penguncian stok atomik agar tidak terjadi bentrok pemesanan.</p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Nama Sparepart</th>
+              <th>Stok Tersedia</th>
+              <th>Status Kuota</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Seal Hidrolik PTO</td>
+              <td><span id="stockPto">10 Pcs</span></td>
+              <td><span class="status status-available" id="badgePto">Aman</span></td>
+            </tr>
+            <tr>
+              <td>Filter Solar Dump Truck</td>
+              <td><span id="stockSolar">24 Pcs</span></td>
+              <td><span class="status status-available" id="badgeSolar">Aman</span></td>
+            </tr>
+            <tr>
+              <td>Kampas Rem Angin Set</td>
+              <td><span id="stockBrake">15 Pcs</span></td>
+              <td><span id="statusBrakeBadge" class="status status-occupied">Menipis</span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top: 1.5rem; background: #f8fafc; padding: 1rem; border-radius: 8px;">
+          <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem;">⚙️ Aksi Cepat Admin</h4>
+          <button class="btn btn-primary" style="width: 100%; margin-bottom: 0.5rem;" onclick="generateDailyReport()">Cetak Rekap Harian Work Order</button>
+          <button class="btn btn-success" style="width: 100%;" onclick="restockSparepart()">Restock Otomatis Sparepart Menipis</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Bengkel Limcun - Sistem Servis Bengkel Dump Truck</p>
+  </footer>
+
+  <script>
+    // Sinkronisasi data saat halaman Admin dimuat
+    window.addEventListener('DOMContentLoaded', () => {
+      loadInventoryToTable();
+
+      const savedRes = JSON.parse(localStorage.getItem('limcun_active_reservation'));
+      const tbody = document.getElementById('reservationTableBody');
+
+      if (savedRes && savedRes.plat) {
+        const newRow = document.createElement('tr');
+        const badgeClass = savedRes.status.includes('Confirmed') ? 'status-available' : 'status-pending';
+        newRow.innerHTML = `
+          <td><strong>${savedRes.plat}</strong><br><span style="font-size:0.75rem; color:var(--text-muted);">${savedRes.tipe} (${savedRes.jenisServis}) - Sparepart: ${savedRes.sparepart}</span></td>
+          <td>${savedRes.slotName}</td>
+          <td>
+            <span class="status ${badgeClass}" id="adminStatusBadge">${savedRes.status}</span>
+            <div style="margin-top: 0.5rem; display: flex; gap: 0.35rem;">
+              <button class="btn btn-success" style="font-size:0.7rem; padding:0.25rem 0.5rem;" onclick="changeReservationStatus('Confirmed')">Konfirmasi</button>
+              <button class="btn btn-danger" style="font-size:0.7rem; padding:0.25rem 0.5rem;" onclick="changeReservationStatus('No-Show')">No-Show</button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(newRow);
+      }
+    });
+
+    function loadInventoryToTable() {
+      const inventory = JSON.parse(localStorage.getItem('limcun_inventory')) || {
+        'Seal Hidrolik PTO': 10,
+        'Filter Solar Dump Truck': 24,
+        'Kampas Rem Angin Set': 15
+      };
+
+      const ptoStock = inventory['Seal Hidrolik PTO'] !== undefined ? inventory['Seal Hidrolik PTO'] : 10;
+      const solarStock = inventory['Filter Solar Dump Truck'] !== undefined ? inventory['Filter Solar Dump Truck'] : 24;
+      const brakeStock = inventory['Kampas Rem Angin Set'] !== undefined ? inventory['Kampas Rem Angin Set'] : 15;
+
+      document.getElementById('stockPto').innerText = ptoStock + ' Pcs';
+      document.getElementById('stockSolar').innerText = solarStock + ' Pcs';
+      document.getElementById('stockBrake').innerText = brakeStock + ' Pcs';
+
+      updateBadgeStatus('badgePto', ptoStock, 5);
+      updateBadgeStatus('badgeSolar', solarStock, 5);
+      updateBadgeStatus('statusBrakeBadge', brakeStock, 5);
+    }
+
+    function updateBadgeStatus(badgeId, currentStock, minStock) {
+      const badge = document.getElementById(badgeId);
+      if (!badge) return;
+
+      if (currentStock >= minStock) {
+        badge.className = 'status status-available';
+        badge.innerText = 'Aman';
+      } else {
+        badge.className = 'status status-occupied';
+        badge.innerText = 'Menipis';
+      }
+    }
+
+    function changeReservationStatus(statusType) {
+      const badge = document.getElementById('adminStatusBadge');
+      let savedRes = JSON.parse(localStorage.getItem('limcun_active_reservation'));
+
+      if (statusType === 'Confirmed') {
+        if(badge) {
+          badge.className = 'status status-available';
+          badge.innerText = 'Confirmed (DP Verified)';
+        }
+        if(savedRes) {
+          savedRes.status = 'Confirmed (DP Verified)';
+          localStorage.setItem('limcun_active_reservation', JSON.stringify(savedRes));
+        }
+        alert('✓ Status reservasi berhasil dikonfirmasi oleh kasir!');
+      } else if (statusType === 'No-Show') {
+        if(savedRes && savedRes.sparepart) {
+          let inventory = JSON.parse(localStorage.getItem('limcun_inventory')) || {};
+          if(inventory[savedRes.sparepart] !== undefined) {
+            inventory[savedRes.sparepart] += 1;
+            localStorage.setItem('limcun_inventory', JSON.stringify(inventory));
+          }
+          localStorage.removeItem('limcun_active_reservation');
+        }
+
+        // Hapus baris tabel dari tampilan admin setelah di No-Show-kan
+        const tbody = document.getElementById('reservationTableBody');
+        tbody.innerHTML = '';
+
+        loadInventoryToTable();
+        alert('✓ Armada ditandai No-Show (TC-FR05-03). DP hangus dan kuota sparepart otomatis dikembalikan ke status Available!');
+      }
+    }
+
+    function generateDailyReport() {
+      alert('✓ Rekapitulasi Work Order dan laporan kasir harian berhasil dicetak!');
+    }
+
+    function restockSparepart() {
+      let inventory = JSON.parse(localStorage.getItem('limcun_inventory')) || {
+        'Seal Hidrolik PTO': 10,
+        'Filter Solar Dump Truck': 24,
+        'Kampas Rem Angin Set': 15
+      };
+      inventory['Kampas Rem Angin Set'] += 13;
+      localStorage.setItem('limcun_inventory', JSON.stringify(inventory));
+
+      loadInventoryToTable();
+      alert('✓ Berhasil melakukan restock otomatis untuk Kampas Rem Angin Set. Status kini kembali AMAN.');
+    }
+  </script>
+</body>
+</html>
